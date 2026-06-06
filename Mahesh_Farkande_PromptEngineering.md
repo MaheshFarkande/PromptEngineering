@@ -264,3 +264,101 @@ You have a meeting at 2 PM that requires 1 hour of prep time, a 30-minute commut
 ## 3. Comparison
 
 The two outputs reached the **same final answer (12:00 PM)**, but the chain-of-thought version *showed its work* — breaking the problem into anchoring, summing durations, working backward, and explicitly verifying the 11 AM call did not collide. Chain-of-thought helps with complex reasoning because it forces the model to decompose a multi-constraint problem into ordered sub-steps, which reduces arithmetic slips and makes hidden assumptions (like task ordering and conflict-checking) visible and verifiable. One **limitation** I observed: the step-by-step version is longer and slower, and it still quietly *assumed* a task order (prep -> lunch -> commute); since the problem never specified the sequence, a different valid order would shift the intermediate timings even though the 2-hour total — and the noon start time — stays the same.
+
+# Part 3.2 — Few-Shot Prompting (Sentiment Classifier)
+
+## Task
+
+Teach the LLM to classify customer reviews as **Positive**, **Negative**, or **Neutral**.
+
+**Test set (5 reviews):**
+
+1. "The product arrived damaged and customer service was unhelpful."
+2. "Works as expected, nothing special but does the job."
+3. "Absolutely love this! Best purchase I've made all year!"
+4. "The quality is okay but slightly overpriced for what you get."
+5. "Terrible experience, would not recommend to anyone."
+
+---
+
+## Step 1: Zero-Shot Attempt
+
+**Prompt:**
+
+> "Classify the sentiment of each of the following customer reviews. Respond with one word per review. Reviews:
+> 1. The product arrived damaged and customer service was unhelpful.
+> 2. Works as expected, nothing special but does the job.
+> 3. Absolutely love this! Best purchase I've made all year!
+> 4. The quality is okay but slightly overpriced for what you get.
+> 5. Terrible experience, would not recommend to anyone."
+
+**LLM Output (zero-shot):**
+
+> 1. Negative
+> 2. Positive
+> 3. Positive
+> 4. Negative
+> 5. Negative
+
+> **Note:** With no examples, the model has no anchor for what counts as "Neutral," so it pushes borderline reviews (#2 and #4) into Positive/Negative buckets.
+
+---
+
+## Step 2: Few-Shot Attempt
+
+**Prompt:**
+
+> "Classify the sentiment of each review as Positive, Negative, or Neutral. Use the examples below as a guide.
+>
+> Review: "This product exceeded my expectations!"
+> Sentiment: Positive
+>
+> Review: "Completely broke after one week of use."
+> Sentiment: Negative
+>
+> Review: "It's fine, does what it says on the box."
+> Sentiment: Neutral
+>
+> Now classify these:
+> Review: "The product arrived damaged and customer service was unhelpful."
+> Review: "Works as expected, nothing special but does the job."
+> Review: "Absolutely love this! Best purchase I've made all year!"
+> Review: "The quality is okay but slightly overpriced for what you get."
+> Review: "Terrible experience, would not recommend to anyone.""
+
+**LLM Output (few-shot):**
+
+> Review: "The product arrived damaged and customer service was unhelpful."
+> Sentiment: Negative
+>
+> Review: "Works as expected, nothing special but does the job."
+> Sentiment: Neutral
+>
+> Review: "Absolutely love this! Best purchase I've made all year!"
+> Sentiment: Positive
+>
+> Review: "The quality is okay but slightly overpriced for what you get."
+> Sentiment: Neutral
+>
+> Review: "Terrible experience, would not recommend to anyone."
+> Sentiment: Negative
+
+---
+
+## Step 3: Analysis
+
+### Comparison Table
+
+| Review # | Zero-Shot Result | Few-Shot Result | Correct Label | Improved? |
+|----------|------------------|-----------------|---------------|-----------|
+| 1        | Negative         | Negative        | Negative      | No (already correct) |
+| 2        | Positive         | Neutral         | Neutral       | Yes |
+| 3        | Positive         | Positive        | Positive      | No (already correct) |
+| 4        | Negative         | Neutral         | Neutral       | Yes |
+| 5        | Negative         | Negative        | Negative      | No (already correct) |
+
+**Accuracy:** Zero-shot = 3/5 (60%) → Few-shot = 5/5 (100%)
+
+### When is few-shot prompting most useful?
+
+Few-shot prompting is most useful when the task depends on a specific definition, label set, or output format that the model can't reliably infer on its own — such as distinguishing a "Neutral" review from a mildly positive or negative one. By showing concrete examples (especially of the tricky middle category), you anchor the model's decision boundaries and enforce a consistent output structure. It delivers the biggest gains for classification, formatting, and domain-specific tasks where ambiguity is high and a single "correct" convention must be followed.
