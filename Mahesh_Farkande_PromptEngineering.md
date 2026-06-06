@@ -209,3 +209,58 @@ To simulate temperature control on a platform that doesn't expose the parameter 
 ## 2.2 Analysis & Recommendations
 
 I would use **low temperature** when accuracy and repeatability matter most — for example, generating technical spec sheets where invented features would be harmful, or producing standardized customer-support responses that must stay consistent across thousands of users. I would use **high temperature** when novelty is the goal — for example, brainstorming bold ad slogans or social-media campaign hooks, or writing imaginative creative fiction where unexpected phrasing is a feature rather than a bug. For this specific laptop-description task, the **medium temperature (0.7)** worked best because it produced copy that was engaging and benefit-driven enough to attract buyers while still remaining faithful to the actual specifications. The low setting was too dry to market a premium product, and the high setting, though memorable, began embellishing beyond the provided facts and risked overshadowing the specs with style. In short, medium temperature struck the ideal balance of persuasion and trustworthiness that real product marketing demands.
+
+# Part 3.1 — Chain-of-Thought Prompting (Option C: Planning Task)
+
+## Problem
+
+You have a meeting at 2 PM that requires 1 hour of prep time, a 30-minute commute, and you need to eat lunch (30 mins) beforehand. You also have a 45-minute call scheduled at 11 AM. What time should you start preparing to make everything work?
+
+---
+
+## 1. Without Chain-of-Thought
+
+**Prompt:**
+
+> "I have a meeting at 2 PM that needs 1 hour of prep, a 30-minute commute, and 30 minutes for lunch beforehand. I also have a 45-minute call at 11 AM. What time should I start preparing? Give me only the answer, no explanation."
+
+**LLM Output (direct answer):**
+
+> "You should start preparing at 12:00 PM (noon)."
+
+---
+
+## 2. With Chain-of-Thought
+
+**Prompt:**
+
+> "I have a meeting at 2 PM that needs 1 hour of prep, a 30-minute commute, and 30 minutes for lunch beforehand. I also have a 45-minute call at 11 AM. What time should I start preparing? **Let's solve this step by step**, working backward from the meeting time and checking for any conflicts."
+
+**LLM Output (with reasoning):**
+
+> Let's solve this step by step.
+>
+> **Step 1 — Identify the fixed anchor.** The meeting starts at **2:00 PM**. Everything else must be finished before that.
+>
+> **Step 2 — List the tasks that must happen before the meeting.**
+> - Prep: 60 minutes
+> - Lunch: 30 minutes
+> - Commute: 30 minutes
+> - Total = **120 minutes (2 hours)**
+>
+> **Step 3 — Work backward from 2:00 PM in a logical order.**
+> - Commute (30 min) -> must leave by **1:30 PM** to arrive at 2:00 PM
+> - Lunch (30 min) -> eat from **1:00 PM to 1:30 PM**
+> - Prep (60 min) -> prepare from **12:00 PM to 1:00 PM**
+>
+> **Step 4 — Determine the start time.** You need to start preparing at **12:00 PM (noon)**.
+>
+> **Step 5 — Check for conflicts with the 11 AM call.** The call runs 45 minutes, from **11:00 AM to 11:45 AM**. It ends 15 minutes before prep begins at noon, so there is **no conflict**.
+>
+> **Answer:** Start preparing at **12:00 PM (noon)**. The 11 AM call finishes in time and leaves a small 15-minute buffer.
+
+---
+
+## 3. Comparison
+
+The two outputs reached the **same final answer (12:00 PM)**, but the chain-of-thought version *showed its work* — breaking the problem into anchoring, summing durations, working backward, and explicitly verifying the 11 AM call did not collide. Chain-of-thought helps with complex reasoning because it forces the model to decompose a multi-constraint problem into ordered sub-steps, which reduces arithmetic slips and makes hidden assumptions (like task ordering and conflict-checking) visible and verifiable. One **limitation** I observed: the step-by-step version is longer and slower, and it still quietly *assumed* a task order (prep -> lunch -> commute); since the problem never specified the sequence, a different valid order would shift the intermediate timings even though the 2-hour total — and the noon start time — stays the same.
